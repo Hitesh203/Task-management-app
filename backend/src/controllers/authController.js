@@ -1,14 +1,19 @@
-const jwt = require('jsonwebtoken');
-const { validationResult } = require('express-validator');
-const { User } = require('../models');
-const CryptoJS = require('crypto-js');
+const jwt = require("jsonwebtoken");
+const { validationResult } = require("express-validator");
+const { User } = require("../models");
+// const CryptoJS = require('crypto-js');
+const AES = require("crypto-js/aes");
+const Utf8 = require("crypto-js/enc-utf8");
 
-
-const SECRET_KEY = process.env.SECRET_KEY
+// const SECRET_KEY = process.env.SECRET_KEY
+const SECRET_KEY = String(
+  process.env.SECRET_KEY || "my-sample-secret-key-123",
+).trim();
+console.log('Key length:', SECRET_KEY.length);
 // Generate JWT Token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 };
 
@@ -22,8 +27,8 @@ exports.register = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        message: 'Validation error',
-        errors: errors.array()
+        message: "Validation error",
+        errors: errors.array(),
       });
     }
 
@@ -34,7 +39,7 @@ exports.register = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'User with this email already exists'
+        message: "User with this email already exists",
       });
     }
 
@@ -42,7 +47,7 @@ exports.register = async (req, res) => {
     const user = await User.create({
       name,
       email,
-      password
+      password,
     });
 
     // Generate token
@@ -50,18 +55,18 @@ exports.register = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: "User registered successfully",
       data: {
         user: user.toJSON(),
-        token
-      }
+        token,
+      },
     });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error("Register error:", error);
     res.status(500).json({
       success: false,
-      message: 'Error registering user',
-      error: error.message
+      message: "Error registering user",
+      error: error.message,
     });
   }
 };
@@ -127,15 +132,17 @@ exports.login = async (req, res) => {
     if (!req.body.payload) {
       return res.status(400).json({
         success: false,
-        message: 'Encrypted payload is missing'
+        message: "Encrypted payload is missing",
       });
     }
 
     let email, password;
     try {
-      console.log('Backend SECRET_KEY:', SECRET_KEY);
-      const bytes = CryptoJS.AES.decrypt(req.body.payload, SECRET_KEY);
-      const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+      console.log("Backend SECRET_KEY:", SECRET_KEY);
+      // const bytes = CryptoJS.AES.decrypt(req.body.payload, SECRET_KEY);
+      // const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+      const bytes = AES.decrypt(req.body.payload, SECRET_KEY);
+      const decryptedText = bytes.toString(Utf8);
       const decryptedData = JSON.parse(decryptedText);
 
       email = decryptedData.email?.trim().toLowerCase();
@@ -143,7 +150,7 @@ exports.login = async (req, res) => {
     } catch (decryptErr) {
       return res.status(400).json({
         success: false,
-        message: 'Failed to decrypt credentials'
+        message: "Failed to decrypt credentials",
       });
     }
 
@@ -151,7 +158,7 @@ exports.login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Email and password are required'
+        message: "Email and password are required",
       });
     }
 
@@ -160,7 +167,7 @@ exports.login = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: "Invalid credentials",
       });
     }
 
@@ -169,7 +176,7 @@ exports.login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: "Invalid credentials",
       });
     }
 
@@ -178,22 +185,21 @@ exports.login = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       data: {
         user: user.toJSON(),
-        token
-      }
+        token,
+      },
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error("Login error:", error);
     res.status(500).json({
       success: false,
-      message: 'Error logging in',
-      error: error.message
+      message: "Error logging in",
+      error: error.message,
     });
   }
 };
-
 
 // @desc    Get current user
 // @route   GET /api/auth/me
@@ -203,15 +209,15 @@ exports.getMe = async (req, res) => {
     res.json({
       success: true,
       data: {
-        user: req.user.toJSON()
-      }
+        user: req.user.toJSON(),
+      },
     });
   } catch (error) {
-    console.error('Get me error:', error);
+    console.error("Get me error:", error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching user',
-      error: error.message
+      message: "Error fetching user",
+      error: error.message,
     });
   }
 };
@@ -231,17 +237,17 @@ exports.updateProfile = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Profile updated successfully',
+      message: "Profile updated successfully",
       data: {
-        user: user.toJSON()
-      }
+        user: user.toJSON(),
+      },
     });
   } catch (error) {
-    console.error('Update profile error:', error);
+    console.error("Update profile error:", error);
     res.status(500).json({
       success: false,
-      message: 'Error updating profile',
-      error: error.message
+      message: "Error updating profile",
+      error: error.message,
     });
   }
 };

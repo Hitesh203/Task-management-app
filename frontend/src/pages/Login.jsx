@@ -1,28 +1,34 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { login, clearError } from '../store/authSlice';
-import { ButtonLoading } from '../components/Loading';
-import { Eye, EyeOff, Mail, Lock, Zap } from 'lucide-react';
-import toast from 'react-hot-toast';
-import CryptoJS from "crypto-js";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { login, clearError } from "../store/authSlice";
+import { ButtonLoading } from "../components/Loading";
+import { Eye, EyeOff, Mail, Lock, Zap } from "lucide-react";
+import toast from "react-hot-toast";
+// import CryptoJS from "crypto-js";
+import AES from "crypto-js/aes";
+import Utf8 from "crypto-js/enc-utf8";
 
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { isAuthenticated, isLoading, error } = useSelector((state) => state.auth);
+  const { isAuthenticated, isLoading, error } = useSelector(
+    (state) => state.auth,
+  );
 
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
-  const SECRET_KEY = import.meta.env.SECRET_KEY || 'my-sample-secret-key-123';
-
+  // const SECRET_KEY = import.meta.env.SECRET_KEY || 'my-sample-secret-key-123';
+  const SECRET_KEY = String(
+    import.meta.env.VITE_SECRET_KEY || "my-sample-secret-key-123",
+  ).trim();
   useEffect(() => {
-    if (isAuthenticated) {  
-      navigate('/dashboard');
+    if (isAuthenticated) {
+      navigate("/dashboard");
     }
   }, [isAuthenticated, navigate]);
 
@@ -36,12 +42,12 @@ const Login = () => {
   const validate = () => {
     const newErrors = {};
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Please enter a valid email";
     }
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -51,7 +57,7 @@ const Login = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -60,13 +66,17 @@ const Login = () => {
     if (!validate()) return;
 
     try {
-      const encryptedPayload = CryptoJS.AES.encrypt(
-      JSON.stringify(formData),
-      SECRET_KEY
+      // const encryptedPayload = CryptoJS.AES.encrypt(
+      // JSON.stringify(formData),
+      // SECRET_KEY
+      // ).toString();
+      const encryptedPayload = AES.encrypt(
+        JSON.stringify(formData),
+        SECRET_KEY,
       ).toString();
-      await dispatch(login({payload: encryptedPayload})).unwrap();
-      toast.success('Welcome back!');
-      navigate('/dashboard');
+      await dispatch(login({ payload: encryptedPayload })).unwrap();
+      toast.success("Welcome back!");
+      navigate("/dashboard");
     } catch (err) {
       // Error handled by useEffect
     }
@@ -110,7 +120,7 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Enter your email address"
-                  className={`input-field pl-12 ${errors.email ? 'border-rose-500' : ''}`}
+                  className={`input-field pl-12 ${errors.email ? "border-rose-500" : ""}`}
                 />
               </div>
               {errors.email && (
@@ -126,13 +136,13 @@ const Login = () => {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary-500" />
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Enter your password"
-                  className={`input-field pl-12 pr-12 ${errors.password ? 'border-rose-500' : ''}`}
+                  className={`input-field pl-12 pr-12 ${errors.password ? "border-rose-500" : ""}`}
                 />
                 <button
                   type="button"
@@ -170,7 +180,7 @@ const Login = () => {
 
           {/* Register Link */}
           <p className="mt-6 text-center text-dark-400">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <Link
               to="/register"
               className="text-primary-500 hover:text-primary-400 font-medium"
