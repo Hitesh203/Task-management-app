@@ -1,7 +1,10 @@
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const { User } = require('../models');
+const CryptoJS = require('crypto-js');
 
+
+const SECRET_KEY = process.env.SECRET_KEY
 // Generate JWT Token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -66,21 +69,93 @@ exports.register = async (req, res) => {
 // @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
+// exports.login = async (req, res) => {
+//   try {
+//     // Check validation errors
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Validation error',
+//         errors: errors.array()
+//       });
+//     }
+
+//     const { email, password } = req.body;
+
+//     // Find user by email
+//     const user = await User.findOne({ where: { email } });
+//     if (!user) {
+//       return res.status(401).json({
+//         success: false,
+//         message: 'Invalid credentials'
+//       });
+//     }
+
+//     // Check password
+//     const isMatch = await user.comparePassword(password);
+//     if (!isMatch) {
+//       return res.status(401).json({
+//         success: false,
+//         message: 'Invalid credentials'
+//       });
+//     }
+
+//     // Generate token
+//     const token = generateToken(user.id);
+
+//     res.json({
+//       success: true,
+//       message: 'Login successful',
+//       data: {
+//         user: user.toJSON(),
+//         token
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Login error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Error logging in',
+//       error: error.message
+//     });
+//   }
+// };
 exports.login = async (req, res) => {
   try {
-    // Check validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
+    // 1. Decrypt the incoming payload first
+    if (!req.body.payload) {
       return res.status(400).json({
         success: false,
-        message: 'Validation error',
-        errors: errors.array()
+        message: 'Encrypted payload is missing'
       });
     }
 
-    const { email, password } = req.body;
+    let email, password;
+    try {
+      console.log('Backend SECRET_KEY:', SECRET_KEY);
+      const bytes = CryptoJS.AES.decrypt(req.body.payload, SECRET_KEY);
+      const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+      const decryptedData = JSON.parse(decryptedText);
 
-    // Find user by email
+      email = decryptedData.email?.trim().toLowerCase();
+      password = decryptedData.password;
+    } catch (decryptErr) {
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to decrypt credentials'
+      });
+    }
+
+    // 2. Basic manual validation (replaces express-validator on encrypted body)
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+
+    // 3. Find user by email (Your existing code)
     const user = await User.findOne({ where: { email } });
     if (!user) {
       return res.status(401).json({
@@ -89,7 +164,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check password
+    // 4. Check password with bcrypt via your model method (Your existing code)
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({
@@ -98,7 +173,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Generate token
+    // 5. Generate token (Your existing code)
     const token = generateToken(user.id);
 
     res.json({
@@ -118,6 +193,7 @@ exports.login = async (req, res) => {
     });
   }
 };
+
 
 // @desc    Get current user
 // @route   GET /api/auth/me

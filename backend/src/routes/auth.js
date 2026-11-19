@@ -26,19 +26,26 @@ const registerValidation = [
     .withMessage('Password must be at least 6 characters')
 ];
 
-const loginValidation = [
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email is required')
-    .isEmail()
-    .withMessage('Please provide a valid email')
-    .normalizeEmail(),
-  body('password')
-    .notEmpty()
-    .withMessage('Password is required')
-];
+// const loginValidation = [
+//   body('email')
+//     .trim()
+//     .notEmpty()
+//     .withMessage('Email is required')
+//     .isEmail()
+//     .withMessage('Please provide a valid email')
+//     .normalizeEmail(),
+//   body('password')
+//     .notEmpty()
+//     .withMessage('Password is required')
+// ];
 
+const loginValidation = [
+  body('payload')
+    .notEmpty()
+    .withMessage('Encrypted payload is required')
+    .isString()
+    .withMessage('Payload must be a valid string')
+];
 // Routes
 router.post('/register', registerValidation, authController.register);
 router.post('/login', loginValidation, authController.login);

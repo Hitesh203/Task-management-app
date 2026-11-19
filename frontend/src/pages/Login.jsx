@@ -5,6 +5,7 @@ import { login, clearError } from '../store/authSlice';
 import { ButtonLoading } from '../components/Loading';
 import { Eye, EyeOff, Mail, Lock, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
+import CryptoJS from "crypto-js";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,9 +18,10 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const SECRET_KEY = import.meta.env.SECRET_KEY || 'my-sample-secret-key-123';
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated) {  
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
@@ -58,7 +60,11 @@ const Login = () => {
     if (!validate()) return;
 
     try {
-      await dispatch(login(formData)).unwrap();
+      const encryptedPayload = CryptoJS.AES.encrypt(
+      JSON.stringify(formData),
+      SECRET_KEY
+      ).toString();
+      await dispatch(login({payload: encryptedPayload})).unwrap();
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (err) {
